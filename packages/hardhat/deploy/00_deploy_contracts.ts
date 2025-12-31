@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { Contract } from "ethers";
+import { deployments } from "hardhat";
 
 /**
  * Deploys a contract named "YourContract" using the deployer account and
@@ -75,6 +76,24 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     await cornToken.approve(cornDEX.target, hre.ethers.parseEther("1000000000"));
     await cornDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
   }
+
+  const cornDeployment = await deployments.get("Corn");
+  const cornDEXDeployment = await deployments.get("CornDEX");
+  const lendingDeployment = await deployments.get("Lending");
+
+  await deploy("FlashLoanLiquidator", {
+    from: deployer,
+    args: [lendingDeployment.address, cornDEXDeployment.address, cornDeployment.address],
+    log: true,
+    autoMine: true,
+  });
+
+  await deploy("Leverage", {
+    from: deployer,
+    args: [lendingDeployment.address, cornDEXDeployment.address, cornDeployment.address],
+    log: true,
+    autoMine: true,
+  });
 };
 
 export default deployContracts;
